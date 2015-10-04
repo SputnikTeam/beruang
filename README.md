@@ -1,5 +1,7 @@
 # Beruang
 
+[![Build Status](https://travis-ci.org/SputnikTeam/beruang.svg)](https://travis-ci.org/SputnikTeam/beruang)
+
 ![Beruang](beruang.png)
 
 Retrieve your ets after restart. Beruang will keep process ets tables when supervisor will restart it.
