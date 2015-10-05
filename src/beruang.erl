@@ -2,8 +2,7 @@
 
 -export([
     start_link/0,
-    get_ets/2,
-    get_ets/3
+    get_ets/2
 ]).
 
 -behaviour(gen_server).
@@ -18,26 +17,32 @@
 ]).
 
 -define(SERVER, ?MODULE).
+-define(TIMOUT, 500).
 
 -spec start_link() -> {ok, pid()} | {error, any()}.
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
--spec get_ets(atom(), list()) -> {ok, ets:tab()}.
+-spec get_ets(atom(), list()) -> ets:tab().
 get_ets(TabName, Options) ->
-    get_ets(self(), TabName, Options).
-
--spec get_ets(pid(), atom(), list()) -> {ok, ets:tab()}.
-get_ets(Pid, TabName, Options) ->
-    gen_server:call(?SERVER, {get_ets, Pid, TabName, Options}).
+    Pid = self(),
+    GiftData = make_ref(),
+    BeruangPid = whereis(?SERVER),
+    {ok, Tab} = gen_server:call(?SERVER, {get_ets, Pid, GiftData, TabName, Options}),
+    receive
+        {'ETS-TRANSFER', Tab, BeruangPid, GiftData} ->
+            Tab
+        after ?TIMOUT ->
+            timeout
+    end.
 
 %% gen_server callbacks
 
 init([]) ->
     {ok, ets:new(?MODULE, [])}.
 
-handle_call({get_ets, Pid, TabName, Options}, _From, State) ->
-    Result = get_ets_internal(Pid, TabName, Options, State),
+handle_call({get_ets, Pid, GiftData, TabName, Options}, _From, State) ->
+    Result = get_ets_internal(Pid, GiftData, TabName, Options, State),
     {reply, Result, State};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
@@ -59,10 +64,10 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% internal functions
 
-get_ets_internal(OwnerPid, EtsName, EtsOptions, State) ->
+get_ets_internal(OwnerPid, GiftData, EtsName, EtsOptions, State) ->
     try get_or_create_ets(EtsName, EtsOptions, State) of
         Tab ->
-            true = ets:give_away(Tab, OwnerPid, undefined),
+            true = ets:give_away(Tab, OwnerPid, GiftData),
             {ok, Tab}
     catch
         _:Error ->
