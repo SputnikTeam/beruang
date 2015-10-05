@@ -17,7 +17,7 @@
 ]).
 
 -define(SERVER, ?MODULE).
--define(TIMOUT, 500).
+-define(TIMEOUT, 500).
 
 -spec start_link() -> {ok, pid()} | {error, any()}.
 start_link() ->
@@ -32,8 +32,8 @@ get_ets(TabName, Options) ->
     receive
         {'ETS-TRANSFER', Tab, BeruangPid, GiftData} ->
             Tab
-        after ?TIMOUT ->
-            timeout
+        after ?TIMEOUT ->
+            erlang:error(timeout)
     end.
 
 %% gen_server callbacks
